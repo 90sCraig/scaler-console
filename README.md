@@ -40,7 +40,7 @@ The VP-728 uses the same documented command family, but the current profile and 
 ## Install the Windows beta
 
 1. Open the [GitHub releases](../../releases) page and select the newest beta.
-2. Download `Scaler Console Setup 0.1.0.exe` from **Assets**.
+2. Download `Scaler.Console.Setup.0.1.0.exe` from **Assets**.
 3. Run the installer and choose an installation folder.
 4. Launch **Scaler Console** from the desktop or Start menu.
 
