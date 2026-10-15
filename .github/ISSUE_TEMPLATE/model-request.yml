@@ -1,0 +1,45 @@
+name: Scaler model request
+description: Request support for another Kramer scaler or presentation switcher.
+title: "Model request: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping expand Scaler Console. Please do not include passwords, public IP addresses, or other credentials.
+  - type: input
+    id: model
+    attributes:
+      label: Manufacturer and exact model
+      placeholder: Kramer VP-734
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection used
+      options:
+        - Ethernet / TCP
+        - RS-232 / serial
+        - USB
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: protocol
+    attributes:
+      label: Control protocol or manual link
+      description: Link the manufacturer's protocol document or product manual if available.
+  - type: textarea
+    id: priorities
+    attributes:
+      label: Controls you need most
+      description: List the inputs, outputs, picture controls, presets, or other actions that matter to your setup.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional details
+      description: Include firmware versions or unusual connection details if relevant.

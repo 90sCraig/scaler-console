@@ -1,0 +1,48 @@
+{
+  "name": "scaler-console",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local network controller for Kramer video scalers",
+  "main": "electron/main.cjs",
+  "author": "Craig",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "desktop": "electron .",
+    "pack:win": "electron-builder --win --dir",
+    "dist:win": "electron-builder --win nsis",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "build": {
+    "appId": "com.craig.scalerconsole",
+    "productName": "Scaler Console",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "public/**/*",
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Scaler Console"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.7.1",
+    "electron-builder": "^26.15.3"
+  }
+}

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en" data-theme="classic">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#151b22">
+  <title>Scaler Console</title>
+  <script src="/theme-init.js"></script>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/themes.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Scaler Console home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>Scaler <strong>Console</strong></span>
+      </a>
+      <div class="topbar-tools">
+        <label class="theme-picker" for="themeSelect"><span>Theme</span><select id="themeSelect" aria-label="Color theme">
+          <optgroup label="Scaler Console">
+            <option value="classic">Classic blue</option>
+            <option value="broadcast">90s Craig</option>
+          </optgroup>
+          <optgroup label="Theme.Park">
+            <option value="tp-aquamarine">Aquamarine</option>
+            <option value="tp-hotline">Hotline</option>
+            <option value="tp-hotpink">Hotpink</option>
+            <option value="tp-dracula">Dracula</option>
+            <option value="tp-dark">Dark</option>
+            <option value="tp-organizr">Organizr</option>
+            <option value="tp-space-gray">Space gray</option>
+            <option value="tp-overseerr">Overseerr</option>
+            <option value="tp-plex">Plex</option>
+            <option value="tp-nord">Nord</option>
+            <option value="tp-maroon">Maroon</option>
+          </optgroup>
+        </select></label>
+        <div class="connection-pill" id="connectionPill"><span></span><b>Not connected</b></div>
+      </div>
+    </header>
+
+    <aside class="device-panel">
+      <div class="panel-heading">
+        <h1>Your scaler</h1>
+        <p>Connect over your local network.</p>
+      </div>
+      <form id="connectForm">
+        <label>Model<select id="profileSelect" required></select></label>
+        <label>IP address<input id="hostInput" inputmode="decimal" autocomplete="off" placeholder="192.168.10.119" required></label>
+        <label>TCP port<input id="portInput" type="number" min="1" max="65535" value="5000" required></label>
+        <div class="form-actions">
+          <button class="button primary" type="submit">Connect</button>
+          <button class="button quiet" id="scanButton" type="button">Find devices</button>
+        </div>
+      </form>
+      <div class="scan-results" id="scanResults" aria-live="polite" hidden></div>
+      <button class="recovery-link" id="recoveryButton" type="button">Device at another address?</button>
+      <div class="device-notes">
+        <span>Local only</span>
+        <p>Commands stay between this computer and your scaler.</p>
+      </div>
+    </aside>
+
+    <main>
+      <section class="hero">
+        <div>
+          <p class="model-line" id="modelLine">Kramer scaler control</p>
+        </div>
+        <div class="hero-actions">
+          <button class="button refresh" id="refreshButton" disabled><span aria-hidden="true">↻</span> Refresh open sections</button>
+          <button class="button refresh" id="firmwareButton" disabled>Check firmware</button>
+        </div>
+      </section>
+
+      <section class="signal-path" aria-label="Signal path">
+        <div class="signal-block"><small>Input</small><strong id="signalInput">—</strong></div>
+        <div class="signal-line"><i></i><span>scaling</span></div>
+        <div class="signal-block output"><small>Output</small><strong id="signalOutput">—</strong></div>
+      </section>
+
+      <section class="firmware-panel" id="firmwarePanel" aria-live="polite" hidden></section>
+
+      <div class="empty-state" id="emptyState">
+        <div class="rack-illustration" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <h3>Ready when your scaler is</h3>
+        <p>Enter its network address, or scan this subnet to find it.</p>
+      </div>
+
+      <div class="controls" id="controls" hidden></div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog class="network-dialog firmware-dialog" id="firmwareGuideDialog" aria-labelledby="firmwareGuideTitle">
+    <div class="firmware-guide">
+      <div class="dialog-heading">
+        <div><small>Firmware update guide</small><h2 id="firmwareGuideTitle">Update the VP-729 safely</h2></div>
+        <button class="dialog-close" id="firmwareGuideClose" type="button" aria-label="Close">×</button>
+      </div>
+      <p class="firmware-warning"><strong>This is not a network update.</strong> Kramer’s audio update requires physical access to the rear AUDIO PROG connection, a serial adapter, and the vendor’s flashing tool. Kramer recommends skilled technical personnel; a failed flash can make the scaler malfunction.</p>
+      <div id="firmwareGuideSteps"></div>
+      <div class="firmware-guide-links">
+        <a href="https://k.kramerav.com/support/download.asp?f=47322" target="_blank" rel="noopener noreferrer">Kramer audio firmware download</a>
+        <a href="https://k.kramerav.com/support/download.asp?f=48560" target="_blank" rel="noopener noreferrer">Kramer master firmware download</a>
+        <a href="https://cdn.kramerav.com/web/downloads/manuals/vp-729.pdf" target="_blank" rel="noopener noreferrer">VP-729 manual (audio upgrade: section 9)</a>
+        <a href="https://cdn.kramerav.com/web/downloads/releaseNotes/vp-728__vp-729_release_notes1.pdf" target="_blank" rel="noopener noreferrer">Full Kramer release notes</a>
+      </div>
+      <div class="dialog-actions">
+        <button class="button quiet" id="firmwareGuideDone" type="button">Close</button>
+        <button class="button primary" id="firmwareGuideRecheck" type="button">Recheck versions</button>
+      </div>
+    </div>
+  </dialog>
+  <dialog class="network-dialog" id="networkDialog">
+    <form id="networkForm" method="dialog">
+      <div class="dialog-heading">
+        <div><small>Network recovery</small><h2 id="networkDialogTitle">Move the Kramer to this network</h2></div>
+        <button class="dialog-close" id="dialogClose" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="network-path" aria-label="Network address change">
+        <div><small>This computer</small><strong id="localAddress">Checking…</strong></div>
+        <span aria-hidden="true"><i></i></span>
+        <div><small>Kramer scaler</small><strong id="deviceAddress">Different network</strong></div>
+      </div>
+      <p class="network-explanation" id="networkExplanation">Give the scaler an address that this computer can reach. Video output will continue while its network interface restarts.</p>
+      <div class="device-identity"><span id="networkModel">Kramer scaler</span><span id="deviceStatus">Ready to configure</span></div>
+      <label>MAC address<input id="networkMac" autocomplete="off" spellcheck="false" placeholder="00:20:4A:12:34:56" required></label>
+      <label>New IP address<input id="networkIp" inputmode="decimal" autocomplete="off" placeholder="192.168.10.239" required></label>
+      <div class="network-pair" id="advancedNetworkFields">
+        <label>Subnet mask<input id="networkMask" inputmode="decimal" value="255.255.255.0" required></label>
+        <label>Default gateway<input id="networkGateway" inputmode="decimal" value="192.168.10.1" required></label>
+      </div>
+      <p class="restart-note" id="networkModeNote">The address will be checked before anything is changed.</p>
+      <div class="dialog-actions">
+        <button class="button quiet" id="dialogCancel" type="button">Cancel</button>
+        <button class="button primary" type="submit">Move to this network</button>
+      </div>
+      <details class="manual-fallback">
+        <summary>Still cannot find it?</summary>
+        <div>
+          <p>If automatic recovery cannot run, temporarily set this computer’s Ethernet address to reach <code>192.168.1.39</code>.</p>
+          <ol>
+            <li>Open <strong>Network Connections</strong> in Windows.</li>
+            <li>Open Ethernet properties, then IPv4 Properties.</li>
+            <li>Select <strong>Use the following IP address</strong>: <code>192.168.1.10</code>, mask <code>255.255.255.0</code>, no gateway.</li>
+            <li>After moving the scaler, restore automatic IP and DNS.</li>
+          </ol>
+        </div>
+      </details>
+    </form>
+  </dialog>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
