@@ -1,6 +1,6 @@
 {
   "name": "scaler-console",
-  "version": "0.1.0",
+  "version": "0.2.0-beta.1",
   "private": true,
   "description": "Local network controller for Kramer video scalers",
   "main": "electron/main.cjs",

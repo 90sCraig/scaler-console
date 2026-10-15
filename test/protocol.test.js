@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import net from 'node:net';
 import { encodeAction, encodeGet, encodeSet, parseResponse } from '../src/protocols/legacy-y.js';
-import { validateTarget, writeSetting } from '../src/device-client.js';
+import { encodeGet as encodeP3kGet, encodeSet as encodeP3kSet, parseResponse as parseP3kResponse } from '../src/protocols/protocol-3000-y.js';
+import { readSetting, validateTarget, writeSetting } from '../src/device-client.js';
 import { compareVersions, parseVp729FirmwareReply, parseVp729ReleasePage, checkVp729Firmware } from '../src/firmware.js';
+import { vp728 } from '../src/profiles/vp-728.js';
 import { vp729 } from '../src/profiles/vp-729.js';
+import { vp773, vp773a, vp773amp } from '../src/profiles/vp-773.js';
 
 test('encodes VP-729 get commands', () => {
   assert.equal(encodeGet(25), 'Y 1 25\r');
@@ -56,6 +59,72 @@ test('parses a normal device response and prompt', () => {
   assert.deepEqual(parseResponse('Z 1 25 32\r\n>'), {
     ok: true, controlType: 1, functionCode: 25, value: 32, raw: 'Z 1 25 32'
   });
+});
+
+test('encodes and parses VP-773 Protocol 3000 Y commands', () => {
+  assert.equal(encodeP3kGet(120, 0), '#Y 1,120,0\r');
+  assert.equal(encodeP3kSet(420, 1.2, 0), '#Y 0,420,1.2,0\r');
+  const getReply = parseP3kResponse('~01@Y 1,120,9,0\r\n');
+  assert.equal(getReply.ok, true);
+  assert.equal(getReply.controlType, 1);
+  assert.equal(getReply.functionCode, 120);
+  assert.equal(getReply.value, 9);
+  const setReply = parseP3kResponse('~01@Y 0,420,1.2,0 OK\r\n');
+  assert.equal(setReply.ok, true);
+  assert.equal(setReply.value, 1.2);
+});
+
+test('writes a decimal VP-773 setting over Protocol 3000', async () => {
+  let received = '';
+  const server = net.createServer((socket) => socket.on('data', (chunk) => {
+    received += chunk.toString('ascii');
+    socket.write('~01@Y 0,420,1.2,0 OK\r\n');
+  }));
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  try {
+    const value = await writeSetting(
+      { host: '127.0.0.1', port: server.address().port, protocol: 'protocol-3000-y' },
+      { kind: 'number', label: 'Contrast', functionCode: 420, min: 0.1, max: 1.6, step: 0.1, window: 0 },
+      1.2
+    );
+    assert.equal(received, '#Y 0,420,1.2,0\r');
+    assert.equal(value, 1.2);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('reads a decimal VP-773 setting over Protocol 3000', async () => {
+  const server = net.createServer((socket) => socket.on('data', () => socket.write('~01@Y 1,420,1.2,0\r\n')));
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  try {
+    const value = await readSetting(
+      { host: '127.0.0.1', port: server.address().port, protocol: 'protocol-3000-y' },
+      { functionCode: 420, window: 0 }
+    );
+    assert.equal(value, 1.2);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('registers the documented VP-728 and VP-773 family profiles', () => {
+  assert.equal(vp728.protocol, 'legacy-y');
+  assert.match(vp728.connectionNote, /TCP-to-RS-232 bridge/);
+  assert.equal(vp728.settings, vp729.settings);
+  for (const profile of [vp773, vp773a, vp773amp]) {
+    assert.equal(profile.protocol, 'protocol-3000-y');
+    assert.equal(profile.defaultPort, 5000);
+    assert.ok(profile.settings.find((setting) => setting.id === 'inputSource')?.options.some((option) => option.value === 9));
+    assert.ok(profile.settings.find((setting) => setting.id === 'outputResolution')?.options.some((option) => option.value === 25));
+    assert.equal(new Set(profile.settings.map((setting) => setting.id)).size, profile.settings.length);
+  }
 });
 
 test('rejects public network targets', () => {

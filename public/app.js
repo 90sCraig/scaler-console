@@ -3,7 +3,7 @@ const elements = {
   form: $('#connectForm'), profile: $('#profileSelect'), host: $('#hostInput'), port: $('#portInput'),
   theme: $('#themeSelect'),
   scan: $('#scanButton'), scanResults: $('#scanResults'), refresh: $('#refreshButton'), firmware: $('#firmwareButton'), firmwarePanel: $('#firmwarePanel'), pill: $('#connectionPill'),
-  modelLine: $('#modelLine'), empty: $('#emptyState'), controls: $('#controls'),
+  modelLine: $('#modelLine'), profileNote: $('#profileNote'), empty: $('#emptyState'), controls: $('#controls'),
   signalInput: $('#signalInput'), signalOutput: $('#signalOutput'), toast: $('#toast'),
   networkDialog: $('#networkDialog'), networkForm: $('#networkForm'), networkMac: $('#networkMac'),
   networkModel: $('#networkModel'), networkIp: $('#networkIp'), networkMask: $('#networkMask'), networkGateway: $('#networkGateway'),
@@ -51,16 +51,14 @@ async function init() {
   } catch (error) { showToast(error.message, true); }
 }
 
-elements.profile.addEventListener('change', updateProfile);
+elements.profile.addEventListener('change', () => updateProfile(true));
 elements.form.addEventListener('submit', async (event) => {
   event.preventDefault();
   const button = elements.form.querySelector('[type="submit"]');
   setLoading(button, true);
   try {
     const target = getTarget();
-    const candidatePorts = activeProfile.id === 'vp-729'
-      ? [...new Set([target.port, 5000, 10001])]
-      : [target.port];
+    const candidatePorts = [...new Set([target.port, activeProfile.defaultPort, ...(activeProfile.alternatePorts || [])])];
     let connectedPort = null;
     let lastError;
     for (const port of candidatePorts) {
@@ -100,10 +98,17 @@ $('#dialogClose').addEventListener('click', () => elements.networkDialog.close()
 $('#dialogCancel').addEventListener('click', () => elements.networkDialog.close());
 elements.networkForm.addEventListener('submit', assignNetworkAddress);
 
-function updateProfile() {
+function updateProfile(resetPort = false) {
   activeProfile = profiles.find((profile) => profile.id === elements.profile.value) || profiles[0];
   if (!activeProfile) return;
   elements.modelLine.textContent = `${activeProfile.manufacturer} ${activeProfile.model} · ${activeProfile.family}`;
+  if (resetPort) elements.port.value = activeProfile.defaultPort;
+  elements.profileNote.textContent = activeProfile.connectionNote || '';
+  elements.profileNote.hidden = !activeProfile.connectionNote;
+  elements.scan.hidden = !activeProfile.lantronixDiscovery;
+  elements.scan.parentElement.classList.toggle('single', !activeProfile.lantronixDiscovery);
+  elements.recovery.hidden = !activeProfile.lantronixDiscovery;
+  if (!activeProfile.lantronixDiscovery) elements.scanResults.hidden = true;
 }
 
 function getTarget() {
@@ -189,7 +194,7 @@ async function refreshState(groups = null) {
     const errors = Object.values(data.errors || {});
     const unexpected = errors.filter((error) => !/\bERR 3\b/.test(error));
     if (unexpected.length) showToast(`${unexpected.length} settings could not be read`, true);
-    else if (data.inputStatus === 98 && visibleGroups.includes('Picture')) showToast('No signal on the selected input; picture controls are unavailable');
+    else if (isNoSignal(data.inputStatus) && visibleGroups.includes('Picture')) showToast('No signal on the selected input; picture controls are unavailable');
     else if (errors.length) showToast(`${errors.length} ${errors.length === 1 ? 'setting is' : 'settings are'} unavailable on the device`);
     else showToast('Settings are up to date');
   } catch (error) { showToast(error.message, true); }
@@ -488,7 +493,7 @@ async function reconnectAfterAssignment(ip) {
   elements.scanResults.hidden = false;
   elements.scanResults.innerHTML = `<div class="reconnect-status"><i></i><strong>Restarting the network interface</strong><p>Waiting for ${escapeHtml(ip)}…</p></div>`;
   await delay(4500);
-  const ports = [...new Set([activeProfile.defaultPort, 5000, 10001])];
+  const ports = [...new Set([activeProfile.defaultPort, ...(activeProfile.alternatePorts || [])])];
   for (let attempt = 0; attempt < 6; attempt += 1) {
     for (const port of ports) {
       try {
@@ -511,7 +516,7 @@ async function reconnectAfterAssignment(ip) {
     const discovery = await api('/api/lantronix/discover');
     const moved = discovery.devices.find((device) => device.currentIp === ip && device.mac === elements.networkMac.value.trim());
     if (moved) {
-      elements.scanResults.innerHTML = `<div class="restore-network"><strong>The Kramer moved to ${escapeHtml(ip)}</strong><p>Its control port has not replied yet. Try Connect with port 5000, then 10001.</p></div>`;
+      elements.scanResults.innerHTML = `<div class="restore-network"><strong>The Kramer moved to ${escapeHtml(ip)}</strong><p>Its control port has not replied yet. Try Connect with ${ports.map((port) => `port ${port}`).join(', then ')}.</p></div>`;
       showToast(`Address changed to ${ip}; control port still needs checking`, true);
       return;
     }
@@ -541,12 +546,16 @@ function updateSignalPath(state, inputStatus) {
   const input = activeProfile.settings.find((item) => item.id === 'inputSource');
   const output = activeProfile.settings.find((item) => item.id === 'outputResolution');
   const inputLabel = input?.options.find((item) => item.value === state.inputSource)?.label || 'Unknown';
-  elements.signalInput.textContent = inputStatus === 98 ? `${inputLabel} · No signal` : inputLabel;
+  elements.signalInput.textContent = isNoSignal(inputStatus) ? `${inputLabel} · No signal` : inputLabel;
   elements.signalOutput.textContent = output?.options.find((item) => item.value === state.outputResolution)?.label || 'Unknown';
   const pictureNote = elements.controls.querySelector('[data-group="Picture"] .group-title p');
-  if (pictureNote) pictureNote.textContent = inputStatus === 98
+  if (pictureNote) pictureNote.textContent = isNoSignal(inputStatus)
     ? 'No signal on the selected input. Connect a source or choose an active input.'
     : groupDescription('Picture');
+}
+
+function isNoSignal(value) {
+  return (activeProfile.noSignalValues || [98]).includes(value);
 }
 
 function updateSignalFromControls() {

@@ -98,7 +98,7 @@ async function handleApi(request, response, url) {
 
   if (request.method === 'POST' && url.pathname === '/api/test') {
     const body = await readBody(request);
-    const target = targetFrom(body);
+    const { target } = contextFrom(body);
     const result = await testConnection(target);
     return sendJson(response, 200, result);
   }
@@ -122,7 +122,7 @@ async function handleApi(request, response, url) {
     const errors = {};
     let inputStatus = null;
     if (profile.inputStatusFunctionCode !== undefined) {
-      try { inputStatus = await readSetting(target, { functionCode: profile.inputStatusFunctionCode }); }
+      try { inputStatus = await readSetting(target, { functionCode: profile.inputStatusFunctionCode, window: profile.inputStatusWindow }); }
       catch { /* Older firmware may not expose input status. */ }
     }
     for (const setting of profile.settings.filter((item) => groups.includes(item.group) && !['action', 'actionSelect'].includes(item.kind))) {
@@ -213,7 +213,7 @@ async function recoverLantronixAddress(body) {
 function contextFrom(body) {
   const profile = getProfile(body.profileId);
   if (!profile) throw new Error('Choose a supported device model');
-  return { profile, target: targetFrom(body, profile.defaultPort) };
+  return { profile, target: { ...targetFrom(body, profile.defaultPort), protocol: profile.protocol } };
 }
 
 function targetFrom(body, fallbackPort = 5000) {

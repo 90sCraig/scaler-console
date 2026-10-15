@@ -79,6 +79,7 @@ input, select {
 }
 input:focus, select:focus, button:focus-visible { border-color: var(--signal); box-shadow: 0 0 0 3px rgba(22, 139, 242, .18); }
 .form-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 3px; }
+.form-actions.single { grid-template-columns: 1fr; }
 .button { border: 1px solid transparent; border-radius: 5px; padding: 10px 14px; color: var(--ink); background: #293440; font-weight: 600; }
 .button:hover:not(:disabled) { filter: brightness(1.12); }
 .button:disabled { cursor: not-allowed; opacity: .42; }
@@ -96,6 +97,7 @@ input:focus, select:focus, button:focus-visible { border-color: var(--signal); b
 .scan-summary span { display: block; margin-top: 3px; color: var(--muted); font: .75rem/1.4 "Segoe UI", sans-serif; }
 .recovery-link { margin-top: 13px; padding: 3px 0; border: 0; color: #91a4b5; background: transparent; font-size: .78rem; text-align: left; text-decoration: underline; text-decoration-color: #536474; text-underline-offset: 3px; }
 .recovery-link:hover { color: var(--signal-soft); }
+.profile-note { margin: 12px 0 0; padding: 10px 12px; border-left: 3px solid var(--signal); background: rgba(36, 151, 238, .08); color: #aebdca; font: .76rem/1.45 "Segoe UI", sans-serif; }
 .scan-empty { padding: 12px; border-left: 3px solid var(--warning); background: #211f19; }
 .scan-empty strong { font-size: .84rem; font-weight: 500; }
 .scan-empty p { margin: 5px 0 11px; }
